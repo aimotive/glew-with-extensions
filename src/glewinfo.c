@@ -34,7 +34,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <GL/glew.h>
-#if defined(_WIN32)
+#if defined(GLEW_OSMESA)
+#define GLAPI extern
+#include <GL/osmesa.h>
+#elif defined(_WIN32)
 #include <GL/wglew.h>
 #elif !defined(__APPLE__) && !defined(__HAIKU__) || defined(GLEW_APPLE_GLX)
 #include <GL/glxew.h>
@@ -53,10 +56,10 @@ static FILE* f;
 #ifdef GLEW_MX
 GLEWContext _glewctx;
 #define glewGetContext() (&_glewctx)
-#ifdef _WIN32
+#if defined(_WIN32)
 WGLEWContext _wglewctx;
 #define wglewGetContext() (&_wglewctx)
-#elif !defined(__APPLE__) && !defined(__HAIKU__) || defined(GLEW_APPLE_GLX)
+#elif !defined(GLEW_OSMESA) && !defined(__APPLE__) && !defined(__HAIKU__) || defined(GLEW_APPLE_GLX)
 GLXEWContext _glxewctx;
 #define glxewGetContext() (&_glxewctx)
 #endif
@@ -66,7 +69,8 @@ GLXEWContext _glxewctx;
 
 struct createParams
 {
-#if defined(_WIN32)
+#if defined(GLEW_OSMESA)
+#elif defined(_WIN32)
   int         pixelformat;
 #elif !defined(__APPLE__) && !defined(__HAIKU__) || defined(GLEW_APPLE_GLX)
   const char* display;
@@ -5718,6 +5722,15 @@ static void _glewInfo_GL_KHR_texture_compression_astc_ldr (void)
 
 #endif /* GL_KHR_texture_compression_astc_ldr */
 
+#ifdef GL_KHR_texture_compression_astc_sliced_3d
+
+static void _glewInfo_GL_KHR_texture_compression_astc_sliced_3d (void)
+{
+  glewPrintExt("GL_KHR_texture_compression_astc_sliced_3d", GLEW_KHR_texture_compression_astc_sliced_3d, glewIsSupported("GL_KHR_texture_compression_astc_sliced_3d"), glewGetExtension("GL_KHR_texture_compression_astc_sliced_3d"));
+}
+
+#endif /* GL_KHR_texture_compression_astc_sliced_3d */
+
 #ifdef GL_KTX_buffer_region
 
 static void _glewInfo_GL_KTX_buffer_region (void)
@@ -10660,6 +10673,9 @@ static void glewInfo (void)
 #ifdef GL_KHR_texture_compression_astc_ldr
   _glewInfo_GL_KHR_texture_compression_astc_ldr();
 #endif /* GL_KHR_texture_compression_astc_ldr */
+#ifdef GL_KHR_texture_compression_astc_sliced_3d
+  _glewInfo_GL_KHR_texture_compression_astc_sliced_3d();
+#endif /* GL_KHR_texture_compression_astc_sliced_3d */
 #ifdef GL_KTX_buffer_region
   _glewInfo_GL_KTX_buffer_region();
 #endif /* GL_KTX_buffer_region */
@@ -11210,7 +11226,7 @@ static void glewInfo (void)
 
 /* ------------------------------------------------------------------------ */
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(GLEW_OSMESA)
 
 static void wglewInfo ()
 {
@@ -11378,7 +11394,7 @@ static void wglewInfo ()
 #endif /* WGL_OML_sync_control */
 }
 
-#else /* _UNIX */
+#elif !defined(GLEW_OSMESA) /* _UNIX */
 
 static void glxewInfo ()
 {
@@ -11597,7 +11613,8 @@ int main (int argc, char** argv)
   GLuint err;
   struct createParams params = 
   {
-#if defined(_WIN32)
+#if defined(GLEW_OSMESA)
+#elif defined(_WIN32)
     -1,  /* pixelformat */
 #elif !defined(__HAIKU__) && !defined(__APPLE__) || defined(GLEW_APPLE_GLX)
     "",  /* display */
@@ -11612,7 +11629,8 @@ int main (int argc, char** argv)
   if (glewParseArgs(argc-1, argv+1, &params))
   {
     fprintf(stderr, "Usage: glewinfo "
-#if defined(_WIN32)
+#if defined(GLEW_OSMESA)
+#elif defined(_WIN32)
 	    "[-pf <pixelformat>] "
 #elif !defined(__HAIKU__) && !defined(__APPLE__) || defined(GLEW_APPLE_GLX)
 	    "[-display <display>] "
@@ -11634,7 +11652,8 @@ int main (int argc, char** argv)
   glewExperimental = GL_TRUE;
 #ifdef GLEW_MX
   err = glewContextInit(glewGetContext());
-#ifdef _WIN32
+#if defined(GLEW_OSMESA)
+#elif defined(_WIN32)
   err = err || wglewContextInit(wglewGetContext());
 #elif !defined(__HAIKU__) && !defined(__APPLE__) || defined(GLEW_APPLE_GLX)
   err = err || glxewContextInit(glxewGetContext());
@@ -11664,7 +11683,8 @@ int main (int argc, char** argv)
   fprintf(f, "    GLEW Extension Info\n");
   fprintf(f, "---------------------------\n\n");
   fprintf(f, "GLEW version %s\n", glewGetString(GLEW_VERSION));
-#if defined(_WIN32)
+#if defined(GLEW_OSMESA)
+#elif defined(_WIN32)
   fprintf(f, "Reporting capabilities of pixelformat %d\n", params.pixelformat);
 #elif !defined(__APPLE__) || defined(GLEW_APPLE_GLX)
   fprintf(f, "Reporting capabilities of display %s, visual 0x%x\n", 
@@ -11674,7 +11694,8 @@ int main (int argc, char** argv)
 	  glGetString(GL_RENDERER), glGetString(GL_VENDOR));
   fprintf(f, "OpenGL version %s is supported\n", glGetString(GL_VERSION));
   glewInfo();
-#if defined(_WIN32)
+#if defined(GLEW_OSMESA)
+#elif defined(_WIN32)
   wglewInfo();
 #else
   glxewInfo();
@@ -11712,7 +11733,8 @@ GLboolean glewParseArgs (int argc, char** argv, struct createParams *params)
       else return GL_TRUE;
       ++p;
     }
-#if defined(_WIN32)
+#if defined(GLEW_OSMESA)
+#elif defined(_WIN32)
     else if (!strcmp(argv[p], "-pf") || !strcmp(argv[p], "-pixelformat"))
     {
       if (++p >= argc) return GL_TRUE;
@@ -11738,7 +11760,35 @@ GLboolean glewParseArgs (int argc, char** argv, struct createParams *params)
 
 /* ------------------------------------------------------------------------ */
 
-#if defined(_WIN32)
+#if defined(GLEW_OSMESA)
+OSMesaContext ctx;
+
+static const GLint osmFormat = GL_UNSIGNED_BYTE;
+static const GLint osmWidth = 640;
+static const GLint osmHeight = 480;
+static GLubyte *osmPixels = NULL;
+
+GLboolean glewCreateContext (struct createParams *params)
+{
+  ctx = OSMesaCreateContext(OSMESA_RGBA, NULL);
+  if (NULL == ctx) return GL_TRUE;
+  if (NULL == osmPixels)
+  {
+    osmPixels = (GLubyte *) calloc(osmWidth*osmHeight*4, 1);
+  }
+  if (!OSMesaMakeCurrent(ctx, osmPixels, GL_UNSIGNED_BYTE, osmWidth, osmHeight))
+  {
+      return GL_TRUE;
+  }
+  return GL_FALSE;
+}
+
+void glewDestroyContext ()
+{
+  if (NULL != ctx) OSMesaDestroyContext(ctx);
+}
+
+#elif defined(_WIN32)
 
 HWND wnd = NULL;
 HDC dc = NULL;
